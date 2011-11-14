@@ -1,7 +1,8 @@
 module Unshred
   class CLI
     def initialize(args)
-      puts args.first
+      image = Image.new(args.first)
+      image.unshred!
     end
   end
 end
