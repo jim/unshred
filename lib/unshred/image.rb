@@ -42,7 +42,7 @@ module Unshred
       @arranged << strips_to_place.pop
       runs = strips_to_place.size
 
-      12.times do
+      14.times do
         puts
         last = @arranged.last
         first = @arranged.first
@@ -54,7 +54,7 @@ module Unshred
 
         differences.each do |a|
           index = @strips.index(strips_to_place[a[2]])
-          puts "#{a[0]}: #{index}"
+          puts "#{a[0]}: #{a[1]} #{index}"
         end
 
         score, method, strip_index = differences.first

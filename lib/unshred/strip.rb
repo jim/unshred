@@ -28,7 +28,7 @@ module Unshred
         g = Color.g(lval) - Color.g(right_pixel)
         b = Color.b(lval) - Color.b(right_pixel)
 
-        [r,g,b].inject {|sum,n| sum + n }.abs
+        [r,g,b].inject {|sum,n| sum + n.abs }
       end
 
       differences.inject {|sum,n| sum + n} / lcol.size.to_f
