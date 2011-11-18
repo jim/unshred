@@ -5,10 +5,27 @@ module Unshred
     include ChunkyPNG
 
     attr_accessor :columns
+    attr_accessor :left
+    attr_accessor :left_score
+    attr_accessor :second_place
+    attr_accessor :second_place_score
+    attr_accessor :index
 
     # Create a strip from an array of pixel column arrays
-    def initialize(columns)
+    def initialize(columns, index)
       @columns = columns
+      @index = index
+    end
+
+    def score_strips(strips)
+      @scores = strips.inject([]) do |array, strip|
+        array << [match_left(strip), strip]
+        array
+      end
+      scored = @scores.sort_by {|(value, method, strip)| value}
+      @left_score, @left = scored.first
+      self.left = @left
+      @second_place_score, @second_place = scored[1]
     end
 
     def match_left(strip)
@@ -17,6 +34,10 @@ module Unshred
 
     def match_right(strip)
       compute_match(@columns.last, strip.columns.first)
+    end
+
+    def to_s
+      'Strip'
     end
 
     private
@@ -31,11 +52,13 @@ module Unshred
     end
 
     def pixel_difference(left_pixel, right_pixel)
-      r = Color.r(left_pixel) - Color.r(right_pixel)
-      g = Color.g(left_pixel) - Color.g(right_pixel)
-      b = Color.b(left_pixel) - Color.b(right_pixel)
+      # r = Color.r(left_pixel) - Color.r(right_pixel)
+      lg = Color.g(left_pixel) # / 255.0 * 10
+      rg = Color.g(right_pixel)#  / 255.0 * 10
+      # b = Color.b(left_pixel) - Color.b(right_pixel)
 
-      [r,g,b].inject {|sum,n| sum + n.abs }
+      # total = [r,g,b].inject {|sum,n| sum + n.abs }
+      (lg - rg).abs
     end
   end
 end
