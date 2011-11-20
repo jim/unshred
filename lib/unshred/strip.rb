@@ -1,47 +1,9 @@
 require 'chunky_png'
 
 module Unshred
-  class Strip
+
+  module Calculations
     include ChunkyPNG
-
-    attr_accessor :columns
-    attr_accessor :left
-    attr_accessor :left_score
-    attr_accessor :second_place
-    attr_accessor :second_place_score
-    attr_accessor :index
-
-    # Create a strip from an array of pixel column arrays
-    def initialize(columns, index)
-      @columns = columns
-      @index = index
-    end
-
-    def score_strips(strips)
-      @scores = strips.inject([]) do |array, strip|
-        array << [match_left(strip), strip]
-        array
-      end
-      scored = @scores.sort_by {|(value, method, strip)| value}
-      @left_score, @left = scored.first
-      self.left = @left
-      @second_place_score, @second_place = scored[1]
-    end
-
-    def match_left(strip)
-      compute_match(@columns.first, strip.columns.last)
-    end
-
-    def match_right(strip)
-      compute_match(@columns.last, strip.columns.first)
-    end
-
-    def to_s
-      'Strip'
-    end
-
-    private
-
     def compute_match(lcol, rcol)
       differences = lcol.each_with_index.map do |lval, index|
         right_pixel = rcol[index]
@@ -60,5 +22,49 @@ module Unshred
       # total = [r,g,b].inject {|sum,n| sum + n.abs }
       (lg - rg).abs
     end
+
+  end
+
+  class Strip
+    include Calculations
+
+    attr_accessor :columns
+    attr_accessor :left
+    attr_accessor :left_score
+    attr_accessor :scores
+    attr_accessor :index
+
+    # Create a strip from an array of pixel column arrays
+    def initialize(columns, index)
+      @columns = columns
+      @index = index
+    end
+
+    def score_strips(strips)
+      @scores = strips.inject([]) do |array, strip|
+        array << [match_left(strip), strip]
+        array
+      end
+      scored = @scores.sort_by {|(value, method, strip)| value}
+      @left_score, @left = scored.first
+    end
+
+    def score_for(strip_to_find)
+      return 1000 if strip_to_find == self
+      @scores.find {|(strip, score)| strip == strip_to_find}[1]
+    end
+
+    def match_left(strip)
+      compute_match(@columns.first, strip.columns.last)
+    end
+
+    def match_right(strip)
+      compute_match(@columns.last, strip.columns.first)
+    end
+
+    def to_s
+      'Strip'
+    end
+
   end
 end

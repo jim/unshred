@@ -2,4 +2,4 @@
 
 require File.expand_path('../../lib/unshred', __FILE__)
 
-Unshred::CLI.new(ARGV)
+Unshred::CLI.new(ARGV).run
