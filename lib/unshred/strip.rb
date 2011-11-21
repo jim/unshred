@@ -13,13 +13,14 @@ module Unshred
       differences.inject {|sum,n| sum + n} / lcol.size.to_f
     end
 
+    # Calculate the difference by comparing the red channel data, as it
+    # typically contains the msot contrast.
     def pixel_difference(left_pixel, right_pixel)
       # r = Color.r(left_pixel) - Color.r(right_pixel)
-      lg = Color.g(left_pixel) # / 255.0 * 10
-      rg = Color.g(right_pixel)#  / 255.0 * 10
+      lg = Color.g(left_pixel)
+      rg = Color.g(right_pixel)
       # b = Color.b(left_pixel) - Color.b(right_pixel)
 
-      # total = [r,g,b].inject {|sum,n| sum + n.abs }
       (lg - rg).abs
     end
 
@@ -49,6 +50,7 @@ module Unshred
       @left_score, @left = scored.first
     end
 
+    # Get the score for the provided strip.
     def score_for(strip_to_find)
       return 1000 if strip_to_find == self
       @scores.find {|(strip, score)| strip == strip_to_find}[1]
@@ -56,10 +58,6 @@ module Unshred
 
     def match_left(strip)
       compute_match(@columns.first, strip.columns.last)
-    end
-
-    def match_right(strip)
-      compute_match(@columns.last, strip.columns.first)
     end
 
     def to_s

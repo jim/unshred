@@ -5,11 +5,13 @@ module Unshred
   class Image
     include Calculations
 
-    def initialize(path, options)
-      @path = path
-      @image = ChunkyPNG::Image.from_file(path)
+    # The options hash should include:
+    # path - the file to process
+    # width - when shredding, the width of shred to create
+    # output - the path to write output to
+    def initialize(options)
       @options = options
-      @arranged = []
+      @image = ChunkyPNG::Image.from_file(@options.path)
     end
 
     def shred!
@@ -21,7 +23,7 @@ module Unshred
       Unshred.logger.info 'unshredding...'
       Unshred.logger.info "writing to #{output_path}"
 
-      width = find_strips
+      width = find_strip_width
       create_strips(width)
 
       match_strips
@@ -31,10 +33,19 @@ module Unshred
 
     private
 
-    def find_strips
+    # Determine the width of strips in the source image.
+    #
+    # This is computed by calculating a score for all potental strip edges,
+    # and then rating the possible strip widths by how low their score was.
+    # This number is weighted slightly to give smaller strips an advantage
+    # over wider ones.
+    def find_strip_width
       differences = []
       last = 0
       edges = []
+
+      # Calculate the difference between the columns of pixels surrounding
+      # potential strip edges, resulting in an array of [index, score] pairs.
       (0...(@image.width - 1)).each do |i|
         l = @image.column(i)
         r = @image.column(i+1)
@@ -46,40 +57,63 @@ module Unshred
 
       max_strips = @image.width / 2
 
-
+      # Qualtile calculations require having the data in numeric order.
       differences.sort_by!{|a| a[1]}
 
+      # Find the lower and upper quantiles, and the iq
       q3 = find_quartile(differences, :upper)
       q1 = find_quartile(differences, :lower)
       iq = q3 - q1
 
+      # Calculate the range to be used to determine if an edge is statistically an
+      # outlier, with the assumption that an outlier is most likely to be a strip
+      # edge. Using 1.5 as an iq multiplier will find mild outliers. This number
+      # may need to be adjusted depending on the dataset, but for photographic
+      # images it seems to work fairly well.
       mild_outlier_threshold = iq * 1.5
       mild_outlier_range = Range.new(q1 - mild_outlier_threshold,
                                      q3 + mild_outlier_threshold)
+
+      # Resort the data by index to make it easer to work with.
       differences.sort_by!{|a| a[0]}
 
+      # Calculate a score for all possible strip widths, resulting in an array
+      # of [strip_count, score] pairs. The score is based on what proportion of that
+      # strip width's edges are outliers.
       strip_width_options = (4..max_strips).map do |number_of_strips|
+        # Skip invalid strip widths
         next unless @image.width % number_of_strips == 0
+
         strip_width = @image.width / number_of_strips
+
+        # Find the edges for a given strip width
         edges = differences.select do |(index, score)|
           (index + 1) % strip_width == 0
         end
+
+        # Keep only outliers
         outliers = edges.select do |(index, score)|
           !mild_outlier_range.include?(score)
         end
+
+        # Subtracting 1 from the nominator weights the score in favor of smaller
+        # strip widths, as it's easier for a smaller number of strips (such as 2)
+        # to have all outliers.
         score = (outliers.size.to_f - 1) / edges.size
 
         [strip_width, score]
       end.compact
 
+      # Order by score, with the highest score first.
       strip_width_options.sort_by!{|(width, score)| score}.reverse!
-
       strip_width, score = strip_width_options.first
+
       Unshred.logger.info "Most likely strip width is #{strip_width} at #{score}"
+
       strip_width
     end
 
-    # This assumes that values have already been sorted
+    # This assumes that values has already been sorted
     def find_quartile(values, which)
       index = if which == :lower
         ((values.size + 1) / 4).abs
@@ -89,6 +123,7 @@ module Unshred
       values[index][1]
     end
 
+    # Create Strip objects with the specified width using image data from @image.
     def create_strips(width)
       @strips = []
 
@@ -111,45 +146,31 @@ module Unshred
       @strips.each do |strip|
         strip.score_strips(@strips - [strip])
       end
-
-      # @strips.each do |strip|
-      #   puts strip
-      #   puts (@strips - [strip]).map {|s| s.score_for(strip) }.sort
-      #   # debugger
-      #   best_match = (@strips - [strip]).sort_by {|s| s.score_for(strip) }[-2]
-      #   puts best_match
-      #   best_match.left = strip
-      #   puts
-      # end
     end
 
     def arrange_strips
       strips_to_place = @strips.dup
 
-      placed = @strips.map do |strip|
-        unless strip.left
-          puts "#{strip.index} NO LEFT"
-          next
-        end
-        puts "#{strip.index}  #{strip.left.index}  #{strip.left_score}"
-        strip.left.index
-      end
+      # Get a list of strips that have been matched by another strip
+      placed = @strips.map { |strip| strip.left.index }
 
+      # The right edge is most likely to not have been matched, and have the
+      # lowest match score.
       right_edge = @strips.select do |strip|
         !placed.include?(strip.index)
       end.sort_by {|s| s.left_score }.last
 
+      # If we don't have a right edge yet, use the left match with the weakest score
       unless right_edge
         right_edge = @strips.sort_by{|s|s.left_score}.last.left
       end
 
-      puts "Using slice #{right_edge.index} as the right edge."
+      Unshred.logger.info "Using slice #{right_edge.index} as the right edge."
 
       @arranged_strips = [strips_to_place.delete(right_edge)]
 
       until strips_to_place.empty?
         first = @arranged_strips.first
-        # puts first.index
         next_strip = strips_to_place.find {|s| first.left == s }
         strips_to_place.delete(next_strip)
         @arranged_strips.unshift(next_strip)
@@ -171,8 +192,10 @@ module Unshred
     end
 
     def output_path
-      extension = File.extname(@path)
-      @path.sub(extension, "-unshredded#{extension}")
+      return @options.output_path if @options.output_path
+      extension = File.extname(@options.path)
+      operation = @options.operation + 'ded'
+      @path.sub(extension, "-#{operation}#{extension}")
     end
 
   end
