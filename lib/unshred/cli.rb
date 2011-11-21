@@ -1,6 +1,8 @@
 require 'optparse'
 require 'ostruct'
 
+require 'unshred/image'
+
 module Unshred
   class CLI
     def initialize(args)

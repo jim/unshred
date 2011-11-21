@@ -1,5 +1,7 @@
 require 'chunky_png'
-require 'ruby-debug'
+
+require 'unshred/strip'
+require 'unshred/calculations'
 
 module Unshred
   class Image

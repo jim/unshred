@@ -1,5 +1,7 @@
 require 'chunky_png'
 
+require 'unshred/calculations'
+
 module Unshred
 
   module Calculations

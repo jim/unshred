@@ -1,9 +1,13 @@
 require 'logger'
 require 'chunky_png'
 
-require_relative 'unshred/strip'
-require_relative 'unshred/image'
-require_relative 'unshred/cli.rb'
+root = File.dirname(__FILE__)
+$LOAD_PATH << root unless $LOAD_PATH.include?(root)
+
+require 'unshred/strip'
+require 'unshred/image'
+require 'unshred/cli'
+require 'unshred/calculations'
 
 module Unshred
   class << self
