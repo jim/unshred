@@ -19,12 +19,8 @@ module Unshred
           @options.output_path = o
         end
 
-        opts.on('-w', '--width', 'Width of shreds when shredding') do |w|
+        opts.on('-w', '--width [STRIP_WIDTH]', Integer, 'Width of shreds when shredding') do |w|
           @options.width = w
-        end
-
-        opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
-          @options.verbose = v
         end
       end.parse!
     end

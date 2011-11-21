@@ -15,21 +15,36 @@ module Unshred
     end
 
     def shred!
-      Unshred.logger.info 'shredding...'
-      Unshred.logger.info "writing to #{output_path}"
+      Unshred.logger.info 'Shredding...'
+
+      shredded = ChunkyPNG::Image.new(@image.width, @image.height)
+      valid_widths = valid_strip_widths(@image.width)
+
+      unless valid_widths.include?(@options.width)
+        Unshred.logger.info "#{@options.width} is not a valid strip width!" unless @options.width.nil?
+        Unshred.logger.info "Please specify a strip width using the -w option."
+        Unshred.logger.info "Valid widths are: #{valid_widths.map(&:to_s).join(', ')}"
+        exit(1)
+      end
+
+      strip_width = @options.width
+
+      create_strips(strip_width)
+      @arranged_strips = @strips.shuffle
+      save_arranged_image(output_path, strip_width)
     end
 
     def unshred!
-      Unshred.logger.info 'unshredding...'
-      Unshred.logger.info "writing to #{output_path}"
+      Unshred.logger.info 'Unshredding...'
 
-      width = find_strip_width
-      create_strips(width)
+      strip_width = find_strip_width
+      create_strips(strip_width)
 
       match_strips
       arrange_strips
-      save_arranged_image(output_path, width)
+      save_arranged_image(output_path, strip_width)
     end
+
 
     private
 
@@ -80,11 +95,13 @@ module Unshred
       # Calculate a score for all possible strip widths, resulting in an array
       # of [strip_count, score] pairs. The score is based on what proportion of that
       # strip width's edges are outliers.
-      strip_width_options = (4..max_strips).map do |number_of_strips|
-        # Skip invalid strip widths
-        next unless @image.width % number_of_strips == 0
 
+      valid_widths = valid_strip_widths(@image.width)
+      strip_width_options = (4..max_strips).map do |number_of_strips|
         strip_width = @image.width / number_of_strips
+
+        # Skip invalid strip widths
+        next unless valid_widths.include?(strip_width)
 
         # Find the edges for a given strip width
         edges = differences.select do |(index, score)|
@@ -113,6 +130,12 @@ module Unshred
       strip_width
     end
 
+    def valid_strip_widths(width)
+      (4..(width/2)).select do |number_of_strips|
+        width % number_of_strips == 0
+      end
+    end
+
     # This assumes that values has already been sorted
     def find_quartile(values, which)
       index = if which == :lower
@@ -139,7 +162,7 @@ module Unshred
         @strips << Strip.new(columns, strip_index)
       end
 
-      Unshred.logger.info "created #{@strips.size} strips"
+      Unshred.logger.info "Created #{@strips.size} strips"
     end
 
     def match_strips
@@ -188,6 +211,7 @@ module Unshred
         end
       end
 
+      Unshred.logger.info "Writing to #{path}"
       output.save(path)
     end
 
@@ -195,7 +219,7 @@ module Unshred
       return @options.output_path if @options.output_path
       extension = File.extname(@options.path)
       operation = @options.operation + 'ded'
-      @path.sub(extension, "-#{operation}#{extension}")
+      @options.path.sub(extension, "-#{operation}#{extension}")
     end
 
   end
