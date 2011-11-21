@@ -13,7 +13,7 @@ module Unshred
     end
 
     # Calculate the difference by comparing the red channel data, as it
-    # typically contains the msot contrast.
+    # which typically contains the most contrast.
     def pixel_difference(left_pixel, right_pixel)
       lg = Color.r(left_pixel)
       rg = Color.r(right_pixel)
