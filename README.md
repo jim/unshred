@@ -6,6 +6,7 @@ This is a solution to the [Instagram Image Unshredding Challenge](http://instagr
 
 * Ruby 1.9
 * ChunkyPNG
+* [GraphicsMagick](http://www.graphicsmagick.org/) to run the tests.
 
 All commands assume you are in the project directory, as I haven't
 bothered to make this a real gem.
