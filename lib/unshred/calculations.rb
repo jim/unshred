@@ -3,6 +3,8 @@ require 'chunky_png'
 module Unshred
   module Calculations
     include ChunkyPNG
+
+    # Calculate the average difference between the pixels in two columns
     def compute_match(lcol, rcol)
       differences = lcol.each_with_index.map do |lval, index|
         right_pixel = rcol[index]
@@ -13,13 +15,10 @@ module Unshred
     end
 
     # Calculate the difference by comparing the red channel data, as it
-    # typically contains the msot contrast.
+    # which typically contains the most contrast.
     def pixel_difference(left_pixel, right_pixel)
-      # r = Color.r(left_pixel) - Color.r(right_pixel)
-      lg = Color.g(left_pixel)
-      rg = Color.g(right_pixel)
-      # b = Color.b(left_pixel) - Color.b(right_pixel)
-
+      lg = Color.r(left_pixel)
+      rg = Color.r(right_pixel)
       (lg - rg).abs
     end
 

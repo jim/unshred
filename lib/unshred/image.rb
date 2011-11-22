@@ -74,10 +74,10 @@ module Unshred
 
       max_strips = @image.width / 2
 
-      # Qualtile calculations require having the data in numeric order.
+      # Quartile calculations require having the data in numeric order.
       differences.sort_by!{|a| a[1]}
 
-      # Find the lower and upper quantiles, and the iq
+      # Find the lower and upper quartiles, and the iq
       q3 = find_quartile(differences, :upper)
       q1 = find_quartile(differences, :lower)
       iq = q3 - q1
